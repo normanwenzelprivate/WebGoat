@@ -56,11 +56,11 @@ public class SqlInjectionLesson8x extends AssignmentEndpoint {
 
     @PostMapping("/SqlInjection/attack8")
   @ResponseBody
-  public AttackResult completed3(@RequestParam String name, @RequestParam String auth_tan) {
-    return injectableQueryConfidentiality3(name, auth_tan);
+  public AttackResult completed(@RequestParam String name, @RequestParam String auth_tan) {
+    return injectableQueryConfidentiality(name, auth_tan);
   }
 
-  protected AttackResult injectableQueryConfidentiality3(String name, String auth_tan) {
+  protected AttackResult injectableQueryConfidentiality(String name, String auth_tan) {
       System.out.println("xxx");
     StringBuilder output = new StringBuilder();
     String query2 =
@@ -116,7 +116,7 @@ public class SqlInjectionLesson8x extends AssignmentEndpoint {
 
   @PostMapping("/SqlInjection/attack8")
   @ResponseBody
-  public AttackResult completed(@RequestParam String name, @RequestParam String auth_tan) {
+  public AttackResult completed2(@RequestParam String name, @RequestParam String auth_tan) {
     return injectableQueryConfidentiality2(name, auth_tan);
   }
 
@@ -176,11 +176,11 @@ public class SqlInjectionLesson8x extends AssignmentEndpoint {
 
     @PostMapping("/SqlInjection/attack8")
   @ResponseBody
-  public AttackResult completed2(@RequestParam String name, @RequestParam String auth_tan) {
-    return injectableQueryConfidentiality(name, auth_tan);
+  public AttackResult completed3(@RequestParam String name, @RequestParam String auth_tan) {
+    return injectableQueryConfidentiality3(name, auth_tan);
   }
 
-  protected AttackResult injectableQueryConfidentiality(String name, String auth_tan) {
+  protected AttackResult injectableQueryConfidentiality3(String name, String auth_tan) {
       System.out.println("xxx");
     StringBuilder output = new StringBuilder();
     String query2 =
