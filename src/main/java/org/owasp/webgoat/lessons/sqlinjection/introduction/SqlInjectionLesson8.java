@@ -57,10 +57,10 @@ public class SqlInjectionLesson8 extends AssignmentEndpoint {
   @PostMapping("/SqlInjection/attack8")
   @ResponseBody
   public AttackResult completed(@RequestParam String name, @RequestParam String auth_tan) {
-    return injectableQueryConfidentiality(name, auth_tan);
+    return injectableQueryConfidentiality2(name, auth_tan);
   }
 
-  protected AttackResult injectableQueryConfidentiality(String name, String auth_tan) {
+  protected AttackResult injectableQueryConfidentiality2(String name, String auth_tan) {
       System.out.println("xxx");
     StringBuilder output = new StringBuilder();
     String query2 =
