@@ -63,7 +63,7 @@ public class SqlInjectionLesson8 extends AssignmentEndpoint {
   protected AttackResult injectableQueryConfidentiality(String name, String auth_tan) {
       System.out.println("xxx");
     StringBuilder output = new StringBuilder();
-    String query =
+    String query2 =
         "SELECT * FROM employees WHERE last_name = '"
             + name
             + "' AND auth_tan = '"
@@ -75,15 +75,15 @@ public class SqlInjectionLesson8 extends AssignmentEndpoint {
         Statement statement =
             connection.createStatement(
                 ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
-        log(connection, query);
-        ResultSet results = statement.executeQuery(query);
+        log(connection, query2);
+        ResultSet results2 = statement.executeQuery(query2);
 
-        if (results.getStatement() != null) {
-          if (results.first()) {
-            output.append(generateTable(results));
-            results.last();
+        if (results2.getStatement() != null) {
+          if (results2.first()) {
+            output.append(generateTable(results2));
+            results2.last();
 
-            if (results.getRow() > 1) {
+            if (results2.getRow() > 1) {
               // more than one record, the user succeeded
               return success(this)
                   .feedback("sql-injection.8.success")
