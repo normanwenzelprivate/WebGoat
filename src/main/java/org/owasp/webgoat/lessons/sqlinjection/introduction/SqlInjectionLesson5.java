@@ -27,11 +27,13 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.PreparedStatement;
 import org.owasp.webgoat.container.LessonDataSource;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
 import org.owasp.webgoat.container.assignments.AttackResult;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -67,26 +69,29 @@ public class SqlInjectionLesson5 extends AssignmentEndpoint {
 
   @PostMapping("/SqlInjection/attack5")
   @ResponseBody
-  public AttackResult completed(String query) {
+  public AttackResult completed(@RequestParam("table") String tableName) {
     createUser();
-    return injectableQuery(query);
+    return injectableQuery(tableName);
   }
 
-  protected AttackResult injectableQuery(String query) {
+  protected AttackResult injectableQuery(String tableName) {
+    // Only allow alphanumeric and underscore for table names to prevent injection
+    if (tableName == null || !tableName.matches("^[a-zA-Z0-9_]+$")) {
+      return failed(this).output("Invalid table name.").build();
+    }
+    String sql = "SELECT * FROM " + tableName;
     try (Connection connection = dataSource.getConnection()) {
-      try (Statement statement =
-          connection.createStatement(
-              ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE)) {
-        statement.executeQuery(query);
+      try (PreparedStatement statement = connection.prepareStatement(sql)) {
+        statement.executeQuery();
         if (checkSolution(connection)) {
           return success(this).build();
         }
-        return failed(this).output("Your query was: " + query).build();
+        return failed(this).output("Your query was: " + sql).build();
       }
     } catch (Exception e) {
       return failed(this)
           .output(
-              this.getClass().getName() + " : " + e.getMessage() + "<br> Your query was: " + query)
+              this.getClass().getName() + " : " + e.getMessage() + "<br> Your query was: " + sql)
           .build();
     }
   }
