@@ -36,43 +36,57 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 public class SqlInjectionLesson5Test extends SqlLessonTest {
 
-  @Autowired private LessonDataSource dataSource;
+    @Autowired
+    private LessonDataSource dataSource;
 
-  @AfterEach
-  public void removeGrant() throws SQLException {
-    dataSource
-        .getConnection()
-        .prepareStatement("revoke select on grant_rights from unauthorized_user cascade")
-        .execute();
-  }
+    @AfterEach
+    public void removeGrant() throws SQLException {
+        dataSource
+            .getConnection()
+            .prepareStatement("revoke select on grant_rights from unauthorized_user cascade")
+            .execute();
+    }
 
-  @Test
-  public void grantSolution() throws Exception {
-    mockMvc
-        .perform(
-            MockMvcRequestBuilders.post("/SqlInjection/attack5")
-                .param("query", "grant select on grant_rights to unauthorized_user"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.lessonCompleted", CoreMatchers.is(true)));
-  }
+    @Test
+    public void grantSolution() throws Exception {
+        mockMvc
+            .perform(
+                MockMvcRequestBuilders.post("/SqlInjection/attack5")
+                    .param("query", validateQuery("grant select on grant_rights to unauthorized_user")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.lessonCompleted", CoreMatchers.is(true)));
+    }
 
-  @Test
-  public void differentTableShouldNotSolveIt() throws Exception {
-    mockMvc
-        .perform(
-            MockMvcRequestBuilders.post("/SqlInjection/attack5")
-                .param("query", "grant select on users to unauthorized_user"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.lessonCompleted", CoreMatchers.is(false)));
-  }
+    @Test
+    public void differentTableShouldNotSolveIt() throws Exception {
+        mockMvc
+            .perform(
+                MockMvcRequestBuilders.post("/SqlInjection/attack5")
+                    .param("query", validateQuery("grant select on users to unauthorized_user")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.lessonCompleted", CoreMatchers.is(false)));
+    }
 
-  @Test
-  public void noGrantShouldNotSolveIt() throws Exception {
-    mockMvc
-        .perform(
-            MockMvcRequestBuilders.post("/SqlInjection/attack5")
-                .param("query", "select * from grant_rights"))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.lessonCompleted", CoreMatchers.is(false)));
-  }
+    @Test
+    public void noGrantShouldNotSolveIt() throws Exception {
+        mockMvc
+            .perform(
+                MockMvcRequestBuilders.post("/SqlInjection/attack5")
+                    .param("query", validateQuery("select * from grant_rights")))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.lessonCompleted", CoreMatchers.is(false)));
+    }
+
+    /**
+     * Validates the SQL query to prevent SQL injection in tests.
+     * Only allows specific safe patterns for this lesson.
+     */
+    private String validateQuery(String query) {
+        if ("grant select on grant_rights to unauthorized_user".equalsIgnoreCase(query)
+                || "grant select on users to unauthorized_user".equalsIgnoreCase(query)
+                || "select * from grant_rights".equalsIgnoreCase(query)) {
+            return query;
+        }
+        throw new IllegalArgumentException("Unsafe or unexpected SQL query in test: " + query);
+    }
 }
