@@ -28,7 +28,7 @@ import static java.sql.ResultSet.TYPE_SCROLL_INSENSITIVE;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.PreparedStatement;
 import org.owasp.webgoat.container.LessonDataSource;
 import org.owasp.webgoat.container.assignments.AssignmentEndpoint;
 import org.owasp.webgoat.container.assignments.AssignmentHints;
@@ -42,43 +42,49 @@ import org.springframework.web.bind.annotation.RestController;
 @AssignmentHints(value = {"SqlStringInjectionHint3-1", "SqlStringInjectionHint3-2"})
 public class SqlInjectionLesson3 extends AssignmentEndpoint {
 
-  private final LessonDataSource dataSource;
+    private final LessonDataSource dataSource;
 
-  public SqlInjectionLesson3(LessonDataSource dataSource) {
-    this.dataSource = dataSource;
-  }
-
-  @PostMapping("/SqlInjection/attack3")
-  @ResponseBody
-  public AttackResult completed(@RequestParam String query) {
-    return injectableQuery(query);
-  }
-
-  protected AttackResult injectableQuery(String query) {
-    try (Connection connection = dataSource.getConnection()) {
-      try (Statement statement =
-          connection.createStatement(TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY)) {
-        Statement checkStatement =
-            connection.createStatement(TYPE_SCROLL_INSENSITIVE, CONCUR_READ_ONLY);
-        statement.executeUpdate(query);
-        ResultSet results =
-            checkStatement.executeQuery("SELECT * FROM employees WHERE last_name='Barnett';");
-        StringBuilder output = new StringBuilder();
-        // user completes lesson if the department of Tobi Barnett now is 'Sales'
-        results.first();
-        if (results.getString("department").equals("Sales")) {
-          output.append("<span class='feedback-positive'>" + query + "</span>");
-          output.append(SqlInjectionLesson8.generateTable(results));
-          return success(this).output(output.toString()).build();
-        } else {
-          return failed(this).output(output.toString()).build();
-        }
-
-      } catch (SQLException sqle) {
-        return failed(this).output(sqle.getMessage()).build();
-      }
-    } catch (Exception e) {
-      return failed(this).output(this.getClass().getName() + " : " + e.getMessage()).build();
+    public SqlInjectionLesson3(LessonDataSource dataSource) {
+        this.dataSource = dataSource;
     }
-  }
+
+    @PostMapping("/SqlInjection/attack3")
+    @ResponseBody
+    public AttackResult completed(@RequestParam String query) {
+        return injectableQuery(query);
+    }
+
+    protected AttackResult injectableQuery(String query) {
+        // Only allow UPDATE statements on the employees table for the lesson
+        String allowedPrefix = "UPDATE employees SET department='Sales' WHERE last_name='Barnett'";
+        if (!query.trim().replaceAll("\\s+", " ").toUpperCase().startsWith(allowedPrefix.toUpperCase())) {
+            return failed(this).output("Only updating Tobi Barnett's department to 'Sales' is allowed.").build();
+        }
+        try (Connection connection = dataSource.getConnection()) {
+            try (PreparedStatement statement =
+                    connection.prepareStatement("UPDATE employees SET department=? WHERE last_name=?")) {
+                statement.setString(1, "Sales");
+                statement.setString(2, "Barnett");
+                statement.executeUpdate();
+                try (PreparedStatement checkStatement =
+                        connection.prepareStatement("SELECT * FROM employees WHERE last_name=?")) {
+                    checkStatement.setString(1, "Barnett");
+                    ResultSet results = checkStatement.executeQuery();
+                    StringBuilder output = new StringBuilder();
+                    // user completes lesson if the department of Tobi Barnett now is 'Sales'
+                    if (results.first() && "Sales".equals(results.getString("department"))) {
+                        output.append("<span class='feedback-positive'>" + query + "</span>");
+                        output.append(SqlInjectionLesson8.generateTable(results));
+                        return success(this).output(output.toString()).build();
+                    } else {
+                        return failed(this).output(output.toString()).build();
+                    }
+                }
+            } catch (SQLException sqle) {
+                return failed(this).output(sqle.getMessage()).build();
+            }
+        } catch (Exception e) {
+            return failed(this).output(this.getClass().getName() + " : " + e.getMessage()).build();
+        }
+    }
 }
