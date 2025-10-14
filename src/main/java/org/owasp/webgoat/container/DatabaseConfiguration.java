@@ -19,50 +19,56 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 @Slf4j
 public class DatabaseConfiguration {
 
-  private final DataSourceProperties properties;
-  private final LessonScanner lessonScanner;
+    private final DataSourceProperties properties;
+    private final LessonScanner lessonScanner;
 
-  @Bean
-  @Primary
-  public DataSource dataSource() {
-    DriverManagerDataSource dataSource = new DriverManagerDataSource();
-    dataSource.setDriverClassName(properties.getDriverClassName());
-    dataSource.setUrl(properties.getUrl());
-    dataSource.setUsername(properties.getUsername());
-    dataSource.setPassword(properties.getPassword());
-    return dataSource;
-  }
+    @Bean
+    @Primary
+    public DataSource dataSource() {
+        DriverManagerDataSource dataSource = new DriverManagerDataSource();
+        dataSource.setDriverClassName(properties.getDriverClassName());
+        dataSource.setUrl(properties.getUrl());
+        dataSource.setUsername(properties.getUsername());
+        dataSource.setPassword(properties.getPassword());
+        return dataSource;
+    }
 
-  /**
-   * Define 2 Flyway instances, 1 for WebGoat itself which it uses for internal storage like users
-   * and 1 for lesson specific tables we use. This way we clean the data in the lesson database
-   * quite easily see {@link RestartLessonService#restartLesson()} for how we clean the lesson
-   * related tables.
-   */
-  @Bean(initMethod = "migrate")
-  public Flyway flyWayContainer() {
-    return Flyway.configure()
-        .configuration(Map.of("driver", properties.getDriverClassName()))
-        .dataSource(dataSource())
-        .schemas("container")
-        .locations("db/container")
-        .load();
-  }
-
-  @Bean
-  public Function<String, Flyway> flywayLessons() {
-    return schema ->
-        Flyway.configure()
+    /**
+     * Define 2 Flyway instances, 1 for WebGoat itself which it uses for internal storage like users
+     * and 1 for lesson specific tables we use. This way we clean the data in the lesson database
+     * quite easily see {@link RestartLessonService#restartLesson()} for how we clean the lesson
+     * related tables.
+     */
+    @Bean(initMethod = "migrate")
+    public Flyway flyWayContainer() {
+        return Flyway.configure()
             .configuration(Map.of("driver", properties.getDriverClassName()))
-            .schemas(schema)
-            .cleanDisabled(false)
             .dataSource(dataSource())
-            .locations("lessons")
+            .schemas("container")
+            .locations("db/container")
             .load();
-  }
+    }
 
-  @Bean
-  public LessonDataSource lessonDataSource() {
-    return new LessonDataSource(dataSource());
-  }
+    @Bean
+    public Function<String, Flyway> flywayLessons() {
+        return schema -> {
+            // Only allow schemas that match a strict pattern (alphanumeric and underscores, 3-30 chars)
+            if (schema == null || !schema.matches("^[a-zA-Z0-9_]{3,30}$")) {
+                log.warn("Rejected attempt to use invalid schema name: {}", schema);
+                throw new IllegalArgumentException("Invalid schema name provided");
+            }
+            return Flyway.configure()
+                .configuration(Map.of("driver", properties.getDriverClassName()))
+                .schemas(schema)
+                .cleanDisabled(false)
+                .dataSource(dataSource())
+                .locations("lessons")
+                .load();
+        };
+    }
+
+    @Bean
+    public LessonDataSource lessonDataSource() {
+        return new LessonDataSource(dataSource());
+    }
 }
