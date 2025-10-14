@@ -74,22 +74,20 @@ public class AccountVerificationHelper {
 
   public boolean verifyAccount(Integer userId, HashMap<String, String> submittedQuestions) {
     // short circuit if no questions are submitted
-    if (submittedQuestions.entrySet().size() != secQuestionStore.get(verifyUserId).size()) {
+    Map<String, String> expectedQuestions = secQuestionStore.get(verifyUserId);
+    if (submittedQuestions.size() != expectedQuestions.size()) {
       return false;
     }
 
-    if (submittedQuestions.containsKey("secQuestion0")
-        && !submittedQuestions
-            .get("secQuestion0")
-            .equals(secQuestionStore.get(verifyUserId).get("secQuestion0"))) {
+    // Ensure the keys match exactly
+    if (!submittedQuestions.keySet().equals(expectedQuestions.keySet())) {
       return false;
     }
 
-    if (submittedQuestions.containsKey("secQuestion1")
-        && !submittedQuestions
-            .get("secQuestion1")
-            .equals(secQuestionStore.get(verifyUserId).get("secQuestion1"))) {
-      return false;
+    for (String key : expectedQuestions.keySet()) {
+      if (!submittedQuestions.get(key).equals(expectedQuestions.get(key))) {
+        return false;
+      }
     }
 
     // else
